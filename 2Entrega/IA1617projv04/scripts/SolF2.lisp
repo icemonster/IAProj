@@ -1,5 +1,5 @@
-(load "datastructures.lisp")
-(load "auxfuncs.lisp")
+(load "datastructures.fas")
+(load "auxfuncs.fas")
 
 
 ;;; TAI position
@@ -97,7 +97,7 @@
     ((funcall (problem-fn-isGoal problem) state) (list state))
     ((eq lim 0) :corte)
     (T (let ((cutoff nil))
-        (loop for newState in (nextStates state) do
+        (loop for newState in (funcall (problem-fn-nextStates problem) state) do
           (let ((result (limdepthfirstsearchDo newState problem (1- lim)))) 
             (if (eq result :corte) (setf cutoff 1) 
               (if (not (NULL result)) (return-from limdepthfirstsearchDo (cons state result)) nil )))
