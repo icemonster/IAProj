@@ -85,25 +85,22 @@
 
 ;;; limdepthfirstsearch 
 (defun limdepthfirstsearch (problem lim)
+  (limdepthfirstsearchDo (problem-initial-state problem) problem lim)
+)
+
+(defun limdepthfirstsearchDo (state problem lim)
   ;;limited depth first search
-     ;;st - initial state
+     ;;state - initial state
      ;;problem - problem information
      ;;lim - depth limit
-  ;;RETURN VALUES
-  	;nodes success
-  	;NIL failure without cutoff
-  	;:corte failure with cutoff
-  (if (funcall (problem-fn-isGoal problem) (problem-initial-state problem)) (list (problem-initial-state problem)) 
+  (if (funcall (problem-fn-isGoal problem) state) (list state) 
     (if (eq lim 0) :corte  ;cutoff
-
-        (let ((initialState (problem-initial-state problem)) (cutoff nil))
-        (loop for newState in (nextStates (problem-initial-state problem)) do
-          (setf (problem-initial-state problem) newState)
-          (let ((result (limdepthfirstsearch problem (1- lim)))) 
+      (let ((cutoff nil))
+        (loop for newState in (nextStates state) do
+          (let ((result (limdepthfirstsearchDo newState problem (1- lim)))) 
             (if (eq result :corte) (setf cutoff 1) 
-              (if (not (NULL result)) (return-from limdepthfirstsearch (cons initialState result)) nil )))
+              (if (not (NULL result)) (return-from limdepthfirstsearchDo (cons state result)) nil )))
         )
-        (setf (problem-initial-state problem) initialState)
         (if (not (NULL cutoff)) :corte nil))
     ) 
   )
@@ -116,10 +113,9 @@
      ;;st - initial state
      ;;problem - problem information
      ;;lim - limit of depth iterations
-
      (loop for depth from 0 do 
        (let ((result (limdepthfirstsearch problem depth)))
-          (if (not(eq result :corte)) (return-from iterlimdepthfirstsearch (result)))
+          (if (not(eq result :corte)) (return-from iterlimdepthfirstsearch result))
       )
     )
 )
