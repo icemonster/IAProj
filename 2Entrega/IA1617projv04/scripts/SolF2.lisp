@@ -111,10 +111,16 @@
 				      
 
 ;iterlimdepthfirstsearch
-(defun iterlimdepthfirstsearch (problem &key (lim most-positive-fixnum))
+(defun iterlimdepthfirstsearch (problem)
   ;;limited depth first search
      ;;st - initial state
      ;;problem - problem information
      ;;lim - limit of depth iterations
-	(list (make-node :state (problem-initial-state problem))) )
+
+     (loop for depth from 0 do 
+       (let ((result (limdepthfirstsearch problem depth)))
+          (if (not(eq result :corte)) (return-from iterlimdepthfirstsearch (result)))
+      )
+    )
+)
 
