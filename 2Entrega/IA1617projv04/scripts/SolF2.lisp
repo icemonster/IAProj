@@ -75,33 +75,39 @@
 ;;; Pedir 
 (defun nextStates (st)
   "generate all possible next states"
-  (let ((possibleStates (list nil)))
+  (let ((possibleStates (list)))
     (loop for action in (possible-actions)
-      do (setf possibleStates (append possibleStates (list (nextState st action))))
+      do (setf possibleStates (cons (nextState st action) possibleStates))
     )
     possibleStates
   )
 )
 
 ;;; limdepthfirstsearch 
-(defun limdepthfirstsearch (problem lim &key cutoff?)
+(defun limdepthfirstsearch (problem lim)
   ;;limited depth first search
      ;;st - initial state
      ;;problem - problem information
      ;;lim - depth limit
-  (if ( ((problem-fn-isGoal problem) (problem-initial-state problem)) ) nil 
-    (if (eq lim 0) :cutoff  
-        (let ((initialState (problem-initial-state problem)))
-        (loop for newState in (nextStates (problem-initial-state problem))
+  ;;RETURN VALUES
+  	;nodes success
+  	;NIL failure without cutoff
+  	;:corte failure with cutoff
+  (if (funcall (problem-fn-isGoal problem) (problem-initial-state problem)) (list (problem-initial-state problem)) 
+    (if (eq lim 0) :corte  ;cutoff
+
+        (let ((initialState (problem-initial-state problem)) (cutoff nil))
+        (loop for newState in (nextStates (problem-initial-state problem)) do
           (setf (problem-initial-state problem) newState)
-          (let ((result (limdepthfirstsearch problem (1- lim) key cutoff))) 
-            (if (equal result "cutoff") (setf cutoff 1) 
-              (if (not (NULL result)) )))
+          (let ((result (limdepthfirstsearch problem (1- lim)))) 
+            (if (eq result :corte) (setf cutoff 1) 
+              (if (not (NULL result)) (return-from limdepthfirstsearch (cons initialState result)) nil )))
         )
-        (setf (problem-initial-state problem) initialState))
-      ) 
-    )
-	(list (make-node :state (problem-initial-state problem))) )
+        (setf (problem-initial-state problem) initialState)
+        (if (not (NULL cutoff)) :corte nil))
+    ) 
+  )
+)
 				      
 
 ;iterlimdepthfirstsearch
