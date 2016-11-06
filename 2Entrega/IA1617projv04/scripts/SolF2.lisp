@@ -93,16 +93,16 @@
      ;;state - initial state
      ;;problem - problem information
      ;;lim - depth limit
-  (if (funcall (problem-fn-isGoal problem) state) (list state) 
-    (if (eq lim 0) :corte  ;cutoff
-      (let ((cutoff nil))
+  (cond
+    ((funcall (problem-fn-isGoal problem) state) (list state))
+    ((eq lim 0) :corte)
+    (T (let ((cutoff nil))
         (loop for newState in (nextStates state) do
           (let ((result (limdepthfirstsearchDo newState problem (1- lim)))) 
             (if (eq result :corte) (setf cutoff 1) 
               (if (not (NULL result)) (return-from limdepthfirstsearchDo (cons state result)) nil )))
         )
-        (if (not (NULL cutoff)) :corte nil))
-    ) 
+        (if (not (NULL cutoff)) :corte nil)))
   )
 )
 				      
