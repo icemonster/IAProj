@@ -73,23 +73,29 @@
 ;;; Pedir 
 (defun nextStates (st)
   "generate all possible next states"
-	(list st))
+  (let ((possibleStates (list)))
+    (loop for action in (possible-actions)
+      do (setf possibleStates (cons (nextState st action) possibleStates))
+    )
+    possibleStates
+  )
+)
 
 ;;; limdepthfirstsearch 
 (defun limdepthfirstsearch (problem lim)
-  "limited depth first search
+  "limited depth first search"
      st - initial state
      problem - problem information
-     lim - depth limit"
+     lim - depth limit
 	(list (make-node :state (problem-initial-state problem))) )
 				      
 
 ;iterlimdepthfirstsearch
 (defun iterlimdepthfirstsearch (problem)
-  "limited depth first search
+  "limited depth first search"
      st - initial state
      problem - problem information
-     lim - limit of depth iterations"
+     lim - limit of depth iterations
 	(list (make-node :state (problem-initial-state problem))) )
 	
 ;; Solution of phase 3
@@ -113,8 +119,18 @@
     )
     heuristicDistance ))
 	  
-  
+(defun nodesList (st)
+	(let ((nodesLst nil))
+		(
+			(loop for newState in (nextStates st) do (
+				(append nodesLst '(newState)) ;FIXME MAKE-NODE
+				(setf nodesLst (nodesList nodesLst))
+			) 
+		)
+	)
 	    
-;;; A*
+;;; A* https://en.wikipedia.org/wiki/A*_search_algorithm
 (defun a* (problem)
+
+	(let ((openSet nil) (closedSet nil)))
   (list (make-node :state (problem-initial-state problem))))
