@@ -119,18 +119,47 @@
     )
     heuristicDistance ))
 	  
-(defun nodesList (st)
-	(let ((nodesLst nil))
-		(
-			(loop for newState in (nextStates st) do (
-				(append nodesLst '(newState)) ;FIXME MAKE-NODE
-				(setf nodesLst (nodesList nodesLst))
-			) 
-		)
+
+(defun nodesListAux (st parentNode nodesList)
+  (let ((newNode (make-node :state st :parent parentNode )))
+    (if (equal parentNode nil) (setf (node-g newNode) 0) 
+                               (setf (node-g newNode) (+ (state-cost st) (node-g parentNode))))
+    (append nodesList '(newNode))
+
+    (loop for newState in (nextStates st) do 
+      (setf nodesList (nodesListAux newState newNode nodesList))
+    )
+  nodesList 
+  )
+)
+
+(defun createNodesList (st)
+	(let ((nodesList nil))
+			(setf nodesList (nodesListAux st nil nodesList))
+    nodesList
 	)
+)
 	    
 ;;; A* https://en.wikipedia.org/wiki/A*_search_algorithm
 (defun a* (problem)
 
-	(let ((openSet nil) (closedSet nil)))
-  (list (make-node :state (problem-initial-state problem))))
+	(let ((openSet '(make-node :state (problem-initial-state problem)
+                            :parent nil 
+                            :g 0
+                            :h (compute-heuristic (problem-initial-state problem))
+                            :f (compute-heuristic (problem-initial-state problem))))
+        (closedSet nil)
+        (current nil)
+    (while (not (NULL openSet))
+      (setf current (car openSet))
+      ;; take the lowest f from openSet
+      (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstruct-path current)) nil)
+      (setf openSet (rest openSet))
+      (cons current closedSet);;FIXME
+    )
+  )
+)
+  
+(defun reconstruct-path ()
+  ;;FIXME
+)
