@@ -139,27 +139,84 @@
     nodesList
 	)
 )
+
+(defun nodeEqual(node1 node2)
+	(eq (node-state node1) (node-state node2))
+)
+
+(defun inList(node lst)
+	(loop for elem in lst do
+		(if (nodeEqual node elem) (return-from inList elem))
+	)
+	0
+)
+
+(defun addToList (newNode lst)
+	(let ((result nil) (elem nil) (alreadyAdded nil))
+	
+		(loop while (not (NULL lst)) do
+			(setf elem (first lst))
+			(if (and (not( alreadyAdded)) (< (node-f newNode) (node-f elem))) 
+				(progn (setf alreadyAdded t) 
+				(append result '(newNode))))
+			(append result '(elem))
+			(setf lst (rest lst))
+		)
+	)
+)
+
+(defun addIncompleteNodeList(newNode current lst)
+	 (setf (node-parent newNode) current)
+     (setf (node-g newNode) (+ (state-cost (node-state newNode)) (node-g current)))
+     (setf (node-h newNode) (compute-heuristic newNode)) ;;FIX ALL compute-heuristics (supoosed to be fn-h)
+     (setf (node-f newNode) (+ (node-g newNode) (node-h newNode)))
+     (addToList newNode lst)
+     newNode
+)
 	    
 ;;; A* https://en.wikipedia.org/wiki/A*_search_algorithm
 (defun a* (problem)
 
-	(let ((openSet '(make-node :state (problem-initial-state problem)
+	(let ((openSet (list (make-node :state (problem-initial-state problem)
                             :parent nil 
                             :g 0
                             :h (compute-heuristic (problem-initial-state problem))
-                            :f (compute-heuristic (problem-initial-state problem))))
+                            :f (compute-heuristic (problem-initial-state problem)))))
         (closedSet nil)
         (current nil)
-    (while (not (NULL openSet))
+        (tempNode nil)
+        (tentativeG 0))
+    (loop while (not (NULL openSet)) do
       (setf current (car openSet))
       ;; take the lowest f from openSet
-      (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstruct-path current)) nil)
+      (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstructPath current problem)))
       (setf openSet (rest openSet))
-      (cons current closedSet);;FIXME
+      (addToList current closedSet)
+      (loop for neighbor in (funcall (problem-fn-nextStates problem) (node-state current)) do	 ;;problem next states
+      	(let ((neighborNode (make-node :state neighbor)))
+      		(setf tentativeG (+ (state-cost neighbor) (node-g current)))
+      		(setf tempNode (inList neighborNode openSet))
+      		(if (eq 0 tempNode) (setf neighborNode (addIncompleteNodeList neighborNode current openSet)) 
+      							(progn (setf neighborNode tempNode) (if (< tentativeG (node-g neighborNode)) 
+      								(progn 
+      									(setf (node-parent neighborNode) current)
+      									(setf (node-g neighborNode) tentativeG)
+      									(setf (node-f neighborNode) (+ tentativeG (node-h neighborNode)))
+      									))))
+
+      	)
+      )
     )
   )
+	:failure
 )
   
-(defun reconstruct-path ()
-  ;;FIXME
+(defun reconstructPath (current problem)
+  (let ((path (list (node-state current))))
+  	(while (not (eq current (problem-initial-state problem)))
+  		(setf current (node-parent current))
+  		(cons (node-state current) path)
+  	)
+  	path
+  )
 )
