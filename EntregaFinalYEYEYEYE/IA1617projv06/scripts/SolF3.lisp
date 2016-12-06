@@ -1,5 +1,5 @@
-(load "datastructures.fas")
-(load "auxfuncs.fas")
+(load "datastructures.lisp")
+(load "auxfuncs.lisp")
 
 
 ;;; TAI position
