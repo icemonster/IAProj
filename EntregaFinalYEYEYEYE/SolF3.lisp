@@ -27,6 +27,8 @@
   (second pos))
 
 
+(defstruct pontoAux pos dist)
+
 ;; Solution of phase 1
 
 (defun getTrackContent (pos track)
@@ -56,17 +58,10 @@
     (and (member current-position (track-endpositions track) :test #'equalp)
 	 T)))
 
-(defun isGoalp2 (st) 
-  "check if st is a solution of the problem"
-  (let ((current-position (state-pos st))
-	(track (state-track st)))
-    (and (eq (state-vel st) (list 0 0)) (member current-position (track-endpositions track) :test #'equalp)
-	 T)))
-
 ;; Pedir 1,2
 (defun nextState (st act)
   "generate the nextState after state st and action act from prolem"
-  (let ((new-state (make-state :action act :track (state-track st))))
+  (let ((new-state (make-state :action act :track (state-track st) :other 0)))
     (setf (state-vel new-state)
 	  (make-vel (+ (vel-l (state-vel st)) (acce-l act))
 		    (+ (vel-c (state-vel st)) (acce-c act))))
@@ -153,8 +148,8 @@
 
 
 (defun distance (pos1 pos2)
-  ;(max (abs (- (pos-l pos2) (pos-l pos1))) (abs (- (pos-c pos2) (pos-c pos1))))
-  (isqrt (+ (expt (- (pos-l pos1) (pos-l pos2)) 2 ) (expt (- (pos-c pos1) (pos-c pos2)) 2 )))
+  (max (abs (- (pos-l pos2) (pos-l pos1))) (abs (- (pos-c pos2) (pos-c pos1))))
+  ;;(isqrt (+ (expt (- (pos-l pos1) (pos-l pos2)) 2 ) (expt (- (pos-c pos1) (pos-c pos2)) 2 )))
 )
 ;; Heuristic
 (defun compute-heuristic (st)
@@ -193,34 +188,46 @@
                  (insertLst node (rest lst)) )) ) 
 )
 
-(defun insertClosed (node lst)
-	(push node lst)
+(defun computeBestHeuristic (st masterLine)
+	(if (NULL (state-other st)) (setf (state-other st) 0))
+	(if (eq (state-other st) (length masterLine)) (compute-heuristic st) 
+							(progn
+	 							(if (eq (state-pos st) (pontoAux-pos (nth (state-other st) masterLine)))
+	 													(setf (state-other st) (1+ (state-other st)))
+	 							) 
+								(if (eq (state-other st) (length masterLine)) (compute-heuristic st) (+ (pontoAux-dist (nth (state-other st) masterLine)) (distance (state-pos st) (pontoAux-pos (nth (state-other st) masterLine)))))
+							) 
+	)
 )
 
 ;;; A* 
-(defun a* (problem)
+(defun a* (problem &optional (masterLine NIL masterLine-supplied-p) );;masterLina lista de posicoes auxiliares
 	(let ((openSet (list (make-node :state (problem-initial-state problem)
                             :parent nil 
                             :g 0
-                            :h (funcall (problem-fn-h problem) (problem-initial-state problem)) 
-                            :f (funcall (problem-fn-h problem) (problem-initial-state problem)))))
+                            :h (if masterLine-supplied-p (funcall (problem-fn-h problem) (problem-initial-state problem) masterLine) 
+									     				 (funcall (problem-fn-h problem) (problem-initial-state problem)))
+                            :f (if masterLine-supplied-p (funcall (problem-fn-h problem) (problem-initial-state problem) masterLine) 
+									     				 (funcall (problem-fn-h problem) (problem-initial-state problem))))))
         (closedSet nil)
         (current nil)
         (tempNode nil)
         (tentativeG 0))
     (loop while (not (NULL openSet)) do
-      (setf current (pop openSet))
+      (setf current (car openSet))
 
       ;; take the lowest f from openSet
       (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstructPath current problem)))
-      (insertClosed current closedSet)
+      (setf openSet (rest openSet))
+      (insertLst current closedSet)
       (loop for neighbor in (funcall (problem-fn-nextStates problem) (node-state current)) do
       	(let ((neighborNode (make-node :state neighbor)))
       		(setf tentativeG (+ (state-cost neighbor) (node-g current)))
       		(setf tempNode (inList neighborNode openSet)) 
       		(if (eq 0 tempNode) (progn 	 (setf (node-parent neighborNode) current)
 									     (setf (node-g neighborNode) (+ (state-cost (node-state neighborNode)) (node-g current)))
-									     (setf (node-h neighborNode) (funcall (problem-fn-h problem) (node-state neighborNode)))
+									     (setf (node-h neighborNode) (if masterLine-supplied-p (funcall (problem-fn-h problem) (node-state neighborNode) masterLine) 
+									     													   (funcall (problem-fn-h problem) (node-state neighborNode))))
 									     (setf (node-f neighborNode) (+ (node-g neighborNode) (node-h neighborNode)))
       									 (setf openSet (insertLst neighborNode openSet)))
       							(progn (setf neighborNode tempNode) (if (< tentativeG (node-g neighborNode)) 
@@ -243,7 +250,7 @@
   		(setf current (node-parent current))
   		(setf path (cons (node-state current) path))
   	)
-  	;(print (format nil "~{~a~^~}" (states-to-list path)))	
+  	(print (format nil "~{~a~^~}" (states-to-list path)))	
   	path
   )
 )
@@ -252,7 +259,7 @@
 ;;Best search first auxiliar functions -----------
 
 (defun normalize (pos1 pos2)
-
+	(print "AHAHAOOOH")
 	(let* ((direction (list (- (pos-l pos2) (pos-l pos1)) (- (pos-c pos2) (pos-c pos1))))
 		   (norma (sqrt (+ (expt (first direction) 2 ) (expt (second direction) 2 )))))
 
@@ -299,74 +306,66 @@
 			(setf distance2 (1+ distance2))
 		)
 
-
+		(print "LOOK AT THESE VALUES")
+		(print leftPoint)
+		(print rightPoint)
 		(setf leftPoint (if (and (not (isObstaclep (roundPoint leftPoint) track)) (or (< distance distance2) (isObstaclep (roundPoint rightPoint) track))) leftPoint rightPoint))
-
+		(print leftPoint)
 		(if (isObstaclep (roundPoint leftPoint) track) currentPoint leftPoint)
 
 	) currentPoint)
 )
 
 (defun masterLineList (problem)
-	(let* ( (masterLine (list (state-pos (problem-initial-state problem)))) 
+	(let* ( (masterLine (list (make-pontoAux :pos (state-pos (problem-initial-state problem)) :dist 0))) 
 		   (finalPos (car (track-endpositions (state-track (problem-initial-state problem))))) 
-		   (direction (normalize (car masterLine) finalPos))
-		   (currentPoint (car masterLine))
+		   (direction (normalize (pontoAux-pos (car masterLine)) finalPos))
+		   (currentPoint (pontoAux-pos (car masterLine)))
 		   (closestPoint nil)
 		   (perpendicularDir (calculatePerpDirection direction))
 		   (tmpPos nil)
 		  )
 		(loop while (not (equal (roundPoint currentPoint) finalPos)) do
-
+			(print "--------------------")
+			
 			(setf currentPoint (sumDirection currentPoint direction))
-
+			(print "CURRENT POINT")
+			(print currentPoint)
 			(setf closestPoint (calculateClosestPoint currentPoint perpendicularDir (state-track (problem-initial-state problem))))
+			(print "Closest point:")
+			(print closestPoint)
 
 			(if (and    (not (NULL tmpPos) ) 
 						(not (eq (round (first closestPoint)) (round (first tmpPos))))
 						(not (eq (round (second closestPoint)) (round (second tmpPos))))
 				)
-				(progn (setf masterLine (append masterLine (list (roundPoint tmpPos) ))))
+				(progn (setf masterLine (append masterLine (list (make-pontoAux :pos (roundPoint tmpPos) :dist 0)))))
 			)
 			(setf tmpPos closestPoint)
 
 		)
+		
+		(let ((indice (- (length masterLine) 2)))
+			(setf (pontoAux-dist (car (last masterLine))) (distance (pontoAux-pos (car (last masterLine))) finalPos))
+			(loop while (>= indice 0) do 
+				(setf (pontoAux-dist (nth indice masterLine)) 
+							(+ (distance (pontoAux-pos (nth indice masterLine)) (pontoAux-pos (nth (1+ indice) masterLine))) 
+							   (pontoAux-dist (nth (1+ indice) masterLine))))
+				(setf indice (1- indice))
+			)
+		)
 	(print "MASTER LINE")
 	(print masterLine)
 	
-	(rest masterLine)
+	masterLine ;fixme 
 	)
 )
-;;FIX ME MASTRELINE STRUCTURE
+
 
 (defun best-search (problem)
-	(setf (problem-fn-isGoal problem) #'isGoalp2)
-	(let ((masterLine (masterLineList problem)) 
-		 (originalGoal (track-endpositions (state-track (problem-initial-state problem))))
-		 (initialSt (problem-initial-state problem))
-		 (resultPath (list (problem-initial-state problem)))
-		 (resultAux nil))
-		
-		(loop for shortcut in masterLine do
-			(print "Doing another a*")
-			(setf (state-cost initialSt) 1)
-			(setf (problem-initial-state problem) initialSt)
-			(setf (track-endpositions (state-track (problem-initial-state problem))) (list shortcut))
-			(print "initial state")
-			(print (problem-initial-state problem))
-			(print "goals")
-			(print (track-endpositions (state-track (problem-initial-state problem))))
-			(setf resultAux (a* problem))
-			(if (not(NULL resultAux)) (setf resultPath(append resultPath (rest resultAux))))
-			(setf initialSt (car (last resultAux)))
-		)
-		(setf (state-cost (car (last resultAux))) 1)
-		(setf (problem-initial-state problem) (car (last resultAux)))
-		(setf (track-endpositions (state-track (problem-initial-state problem))) originalGoal)
-		(setf resultAux (a* problem))
-		(setf resultPath(append resultPath (rest resultAux)))
-	(print "Final result")
-	(print (format nil "~{~a~^~}" (states-to-list resultPath)))
-	resultPath
+	(setf (problem-fn-h problem) #'computeBestHeuristic)
+	(let ((masterLine (masterLineList problem)))
+		(print "Oki gonna solve the problem now")
+		(a* problem masterLine)
 	)
 )

@@ -33,8 +33,8 @@
 (defvar *p2* nil)
 
 ;;REMOVE ME. Also change track10 to track9
-(print "heyheyhey")
-(setf *t2* (loadtrack "track9.txt"))
+
+(setf *t2* (loadtrack "track11.txt"))
 
 (format t "~&Exercise 3.1b - Heuristic~&")
 (with-open-file (str "out3.1b.txt"
