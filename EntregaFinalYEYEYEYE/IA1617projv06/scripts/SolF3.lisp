@@ -90,10 +90,10 @@
 
 ;;; limdepthfirstsearch 
 (defun limdepthfirstsearch (problem lim &key cutoff?)
-  "limited depth first search
+  "limited depth first search"
      st - initial state
      problem - problem information
-     lim - depth limit"
+     lim - depth limit
   (labels ((limdepthfirstsearch-aux (node problem lim)
 	     (if (isGoalp (node-state node))
 		 (solution node)
@@ -120,10 +120,10 @@
 
 ;iterlimdepthfirstsearch
 (defun iterlimdepthfirstsearch (problem &key (lim most-positive-fixnum))
-  "limited depth first search
+  "limited depth first search"
      st - initial state
      problem - problem information
-     lim - limit of depth iterations"
+     lim - limit of depth iterations
   (let ((i 0))
     (loop
       (let ((res (limdepthfirstsearch problem i :cutoff? T)))
@@ -188,7 +188,7 @@
      newNode
 )
 	    
-;;; A* https://en.wikipedia.org/wiki/A*_search_algorithm
+;;; A* 
 (defun a* (problem)
 	(let ((openSet (list (make-node :state (problem-initial-state problem)
                             :parent nil 
@@ -206,7 +206,7 @@
       (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstructPath current problem)))
       (setf openSet (rest openSet))
       (insertLst current closedSet)
-      (loop for neighbor in (funcall (problem-fn-nextStates problem) (node-state current)) do	 ;;problem next states
+      (loop for neighbor in (funcall (problem-fn-nextStates problem) (node-state current)) do
       	(let ((neighborNode (make-node :state neighbor)))
       		(setf tentativeG (+ (state-cost neighbor) (node-g current)))
       		(setf tempNode (inList neighborNode openSet)) 
@@ -235,8 +235,6 @@
   		(setf current (node-parent current))
   		(setf path (cons (node-state current) path))
   	)
-  	;;(print path)
-  	;;(print (format nil "~{~a~^~}" (states-to-list path)))
   	path
   )
 )
