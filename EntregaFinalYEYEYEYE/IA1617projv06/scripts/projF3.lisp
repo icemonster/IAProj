@@ -32,6 +32,8 @@
 (defvar *t2* nil)
 (defvar *p2* nil)
 
+;;REMOVE ME. Also change track10 to track9
+(print "heyheyhey")
 (setf *t2* (loadtrack "track9.txt"))
 
 (format t "~&Exercise 3.1b - Heuristic~&")
@@ -45,6 +47,6 @@
 (format t "~&Exercise 3.2b - A*~&")
  (let ((real1 (get-internal-real-time)))
 		 (with-open-file (str "out3.2b.txt" :direction :input)
-	   (format t "~% Solution is correct? ~a~&" (string= (format nil "~{~a~^~}" (states-to-list (a* *p2*))) (read str))))
+	   (format t "~% Solution is correct? ~a~&" (string= (format nil "~{~a~^~}" (states-to-list (best-search *p2*))) (read str))))
       (let ((real2 (get-internal-real-time)))
 	  (format t "~%Computation took: ~f seconds of real time~%" (/ (- real2 real1) internal-time-units-per-second))))
