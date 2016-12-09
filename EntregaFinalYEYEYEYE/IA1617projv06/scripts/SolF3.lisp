@@ -1,5 +1,5 @@
-(load "datastructures.lisp")
-(load "auxfuncs.lisp")
+(load "datastructures.fas")
+(load "auxfuncs.fas")
 
 
 ;;; TAI position
@@ -105,10 +105,10 @@
 
 ;;; limdepthfirstsearch 
 (defun limdepthfirstsearch (problem lim &key cutoff?)
-  "limited depth first search"
+  "limited depth first search
      st - initial state
      problem - problem information
-     lim - depth limit
+     lim - depth limit"
   (labels ((limdepthfirstsearch-aux (node problem lim)
 	     (if (isGoalp (node-state node))
 		 (solution node)
@@ -135,10 +135,10 @@
 
 ;iterlimdepthfirstsearch
 (defun iterlimdepthfirstsearch (problem &key (lim most-positive-fixnum))
-  "limited depth first search"
+  "limited depth first search
      st - initial state
      problem - problem information
-     lim - limit of depth iterations
+     lim - limit of depth iterations"
   (let ((i 0))
     (loop
       (let ((res (limdepthfirstsearch problem i :cutoff? T)))
@@ -153,8 +153,8 @@
 
 
 (defun distance (pos1 pos2)
-  ;(max (abs (- (pos-l pos2) (pos-l pos1))) (abs (- (pos-c pos2) (pos-c pos1))))
-  (isqrt (+ (expt (- (pos-l pos1) (pos-l pos2)) 2 ) (expt (- (pos-c pos1) (pos-c pos2)) 2 )))
+  (max (abs (- (pos-l pos2) (pos-l pos1))) (abs (- (pos-c pos2) (pos-c pos1))))
+  ; (isqrt (+ (expt (- (pos-l pos1) (pos-l pos2)) 2 ) (expt (- (pos-c pos1) (pos-c pos2)) 2 )))
 )
 ;; Heuristic
 (defun compute-heuristic (st)
@@ -173,15 +173,9 @@
 )
 
 (defun nodeEqual(node1 node2)
-	(and (equalp (state-pos (node-state node1)) (state-pos (node-state node2))) (eq (state-vel (node-state node1)) (state-vel (node-state node2))))
+	(and (equalp (state-pos (node-state node1)) (state-pos (node-state node2))) (equalp (state-vel (node-state node1)) (state-vel (node-state node2))))
 )
 
-(defun inList(node lst)
-	(loop for elem in lst do
-		(if (nodeEqual node elem) (return-from inList elem))
-	)
-	0
-)
 
 (defun insertLst (node lst)
   "Inserts NODE onto LST, according to FVALUE ordering."
@@ -193,9 +187,12 @@
                  (insertLst node (rest lst)) )) ) 
 )
 
-(defun insertClosed (node lst)
-	(push node lst)
-)
+; (defun insertClosed (node lst)
+; )
+
+;(defun inClosed (node lst)
+ ; (member node lst :test (lambda (x y) (and (equalp (state-pos x) (state-pos y)) (equalp (state-vel x) (state-vel y)))))
+;)
 
 ;;; A* 
 (defun a* (problem)
@@ -208,34 +205,44 @@
         (current nil)
         (tempNode nil)
         (tentativeG 0))
-    (loop while (not (NULL openSet)) do
+    (loop while openSet do
       (setf current (pop openSet))
 
       ;; take the lowest f from openSet
       (if (funcall (problem-fn-isGoal problem) (node-state current)) (return-from a* (reconstructPath current problem)))
-      (insertClosed current closedSet)
+      (push (node-state current) closedSet)
       (loop for neighbor in (funcall (problem-fn-nextStates problem) (node-state current)) do
-      	(let ((neighborNode (make-node :state neighbor)))
-      		(setf tentativeG (+ (state-cost neighbor) (node-g current)))
-      		(setf tempNode (inList neighborNode openSet)) 
-      		(if (eq 0 tempNode) (progn 	 (setf (node-parent neighborNode) current)
-									     (setf (node-g neighborNode) (+ (state-cost (node-state neighborNode)) (node-g current)))
-									     (setf (node-h neighborNode) (funcall (problem-fn-h problem) (node-state neighborNode)))
-									     (setf (node-f neighborNode) (+ (node-g neighborNode) (node-h neighborNode)))
-      									 (setf openSet (insertLst neighborNode openSet)))
-      							(progn (setf neighborNode tempNode) (if (< tentativeG (node-g neighborNode)) 
-      								(progn 
-      									(setf (node-parent neighborNode) current)
-      									(setf (node-g neighborNode) tentativeG)
-      									(setf (node-f neighborNode) (+ tentativeG (node-h neighborNode)))
-      									))))
-
-      	)
+        (block inner-loop
+            (if (isObstaclep (state-pos neighbor) (state-track neighbor)) (return-from inner-loop))
+            (let ((neighborNode (make-node :state neighbor)))
+                (if (member neighbor closedSet :test (lambda (x y) 
+                											(and (equalp (state-pos x) (state-pos y)) 
+                												 (equalp (state-vel x) (state-vel y))))) 
+                	(return-from inner-loop))
+                (setf tentativeG (+ (state-cost neighbor) (node-g current)))
+                (setf tempNode (first (member neighborNode openSet :test #'nodeEqual))) 
+                (if (NULL tempNode) 
+                             (progn 	 (setf (node-parent neighborNode) current)
+                                             (setf (node-g neighborNode) (+ (state-cost (node-state neighborNode)) (node-g current)))
+                                             (setf (node-h neighborNode) (funcall (problem-fn-h problem) (node-state neighborNode)))
+                                             (setf (node-f neighborNode) (+ (node-g neighborNode) (node-h neighborNode)))
+                                             (setf openSet (insertLst neighborNode openSet)))
+                             (progn (setf neighborNode tempNode) (if (< tentativeG (node-g neighborNode)) 
+                                            (progn
+                                            (setf (node-state neighborNode) neighbor)
+                                            (setf (node-parent neighborNode) current)
+                                            (setf (node-g neighborNode) tentativeG)
+                                            (setf (node-f neighborNode) (+ tentativeG (node-h neighborNode)))
+                                            )))       
+                )
+            )
+        )
       )
     )
   )
   nil
 )
+
 
 (defun reconstructPath (current problem)
   (let ((path (list (node-state current))))
